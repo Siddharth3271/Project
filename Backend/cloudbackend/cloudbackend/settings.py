@@ -39,10 +39,13 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "cloudapp",
     "channels",
-    "corsheaders"
+    "corsheaders",
+    "rest_framework",
+    "rest_framework_simplejwt"
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -50,7 +53,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "corsheaders.middleware.CorsMiddleware"
 ]
 
 ROOT_URLCONF = "cloudbackend.urls"
@@ -58,7 +60,7 @@ ROOT_URLCONF = "cloudbackend.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -126,6 +128,7 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
+AUTH_USER_MODEL = 'cloudapp.CustomUser'
 
 
 # Static files (CSS, JavaScript, Images)
@@ -147,3 +150,9 @@ CORS_ALLOWED_ORIGINS = [
 ]
 # If you want to allow all origins in development (less secure, but easier):
 # CORS_ALLOW_ALL_ORIGINS = True
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}

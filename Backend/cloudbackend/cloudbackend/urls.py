@@ -29,7 +29,6 @@ from django.urls import path, include  # <-- ADD 'include' here
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    
     # ----------------------------------------------------
     # ADD THIS LINE to include your application's URLs
     # Every URL starting with 'api/' will be handled by cloudapp

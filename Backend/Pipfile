@@ -8,6 +8,8 @@ daphne = "*"
 django = "*"
 channels = "*"
 django-cors-headers = "*"
+djangorestframework = "*"
+djangorestframework-simplejwt = "*"
 
 [dev-packages]
 

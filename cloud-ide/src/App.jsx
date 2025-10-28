@@ -1,29 +1,27 @@
 import { Box } from "@chakra-ui/react";
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'; // <-- New Imports
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import CodeEditor from "./components/CodeEditor";
+import LandingPage from "./components/landing/LandingPage";
+import AuthForm from "./components/landing/Authform"; // 👈 import here
 
 function App() {
   return (
-    // 1. Wrap the entire application in the Router
     <Router>
-      <Box minH="100vh" bg="#0f0a19" color="gray.500" px={6} py={8}>
-        
-        {/* 2. Define the Routes */}
+      <Box minH="100vh" bg="#0f0a19" color="gray.500">
         <Routes>
-          
-          {/* Path for starting a new session (no token) */}
-          <Route path="/" element={<CodeEditor />} />
-
-          {/* Path for joining an existing session (with a token) */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/auth" element={<AuthForm />} /> {/* 👈 add this */}
           <Route path="/editor/:token" element={<CodeEditor />} />
-          
-          {/* Optional: Add a 404/Not Found page */}
-          <Route path="*" element={
-            <Box textAlign="center" mt={20} fontSize="xl">
-                404 | Page Not Found
-            </Box>
-          } />
+          <Route path="/editor/new" element={<CodeEditor />} />
 
+          <Route
+            path="*"
+            element={
+              <Box textAlign="center" mt={20} fontSize="xl">
+                404 | Page Not Found
+              </Box>
+            }
+          />
         </Routes>
       </Box>
     </Router>
