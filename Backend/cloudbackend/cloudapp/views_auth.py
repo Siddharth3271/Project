@@ -34,7 +34,27 @@ def login_user(request):
     username = request.data.get('username')
     password = request.data.get('password')
 
+    # --- ADD THIS DEBUGGING CODE ---
+    print("--- LOGIN ATTEMPT ---")
+    print(f"Username received: '{username}'")
+    print(f"Password received: '{password}'")
+    # --- END DEBUGGING CODE ---
+
     user = authenticate(username=username, password=password)
+
+    # --- ADD THIS DEBUGGING CODE ---
+    if user is None:
+        print(">>> Authentication FAILED.")
+        try:
+            User.objects.get(username=username)
+            print(f">>> User '{username}' EXISTS, but password was WRONG.")
+        except User.DoesNotExist:
+            print(f">>> User '{username}' DOES NOT EXIST.")
+    else:
+        print(f">>> User '{user.username}' authenticated successfully.")
+    # --- END DEBUGGING CODE ---
+
+    
     if user is not None:
         refresh = RefreshToken.for_user(user)
         return Response({

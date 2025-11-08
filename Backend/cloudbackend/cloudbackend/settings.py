@@ -25,12 +25,15 @@ SECRET_KEY = "django-insecure-y)gq+69djdj1o^!5x2yxvve6(vf+l98@z*c@xt$y(s8nj0c#os
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '*'] 
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '*']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    # --- 'channels' MUST be the first app ---
+    "channels", 
+    # ---------------------------------------
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -38,7 +41,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "cloudapp",
-    "channels",
     "corsheaders",
     "rest_framework",
     "rest_framework_simplejwt"
@@ -59,32 +61,26 @@ ROOT_URLCONF = "cloudbackend.urls"
 
 TEMPLATES = [
     {
-        "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
-        "APP_DIRS": True,
-        "OPTIONS": {
-            "context_processors": [
-                "django.template.context_processors.request",
-                "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
-            ],
-        },
-    },
-]
+      "BACKEND": "django.template.backends.django.DjangoTemplates",
+      "DIRS": [BASE_DIR / "templates"],
+       "APP_DIRS": True,
+       "OPTIONS": {
+          "context_processors": [
+             "django.template.context_processors.request",
+             "django.contrib.auth.context_processors.auth",
+             "django.contrib.messages.context_processors.messages",
+         ],
+       },
+    },]
 
 # WSGI_APPLICATION = "cloudbackend.wsgi.application"
-ASGI_APPLICATION = "cloudbackend.asgi.application"
+ASGI_APPLICATION = "cloudbackend.asgi.application" # This is correct
 
 CHANNEL_LAYERS = {
     "default": {
-        # Using the simple in-memory backend for development
+        # --- Use the simple in-memory layer for development ---
         "BACKEND": "channels.layers.InMemoryChannelLayer"
-        
-        # NOTE: For production/multiple servers, replace with:
-        # "BACKEND": "channels_redis.pubsub.RedisChannelLayer",
-        # "CONFIG": {
-        #     "hosts": [("127.0.0.1", 6379)], # Replace with your Redis server address
-        # },
+        # ----------------------------------------------------
     }
 }
 
@@ -103,23 +99,23 @@ DATABASES = {
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
-    },
+ {
+   "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+ },
+ {
+   "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+ },
+ {
+   "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+ },
+ {
+   "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+ },
 ]
 
 
 # Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
+# https://docs.djangoproject.com/en/5.2/topics/i1n/
 
 LANGUAGE_CODE = "en-us"
 
@@ -128,7 +124,7 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
-AUTH_USER_MODEL = 'cloudapp.CustomUser'
+# AUTH_USER_MODEL = 'cloudapp.CustomUser'
 
 
 # Static files (CSS, JavaScript, Images)
@@ -153,6 +149,7 @@ CORS_ALLOWED_ORIGINS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+       'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
+

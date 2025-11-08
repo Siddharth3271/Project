@@ -1,22 +1,15 @@
-# cloudapp/models.py
 import uuid
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.conf import settings
 
-
-class CustomUser(AbstractUser):
-    email = models.EmailField(unique=True)
-
-    def __str__(self):
-        return self.username
-
-
-# ✅ Your existing model (unchanged)
 class CollaborationSession(models.Model):
-    token = models.CharField(max_length=32, unique=True, default=uuid.uuid4)
-    code = models.TextField(default="/* Start coding here... */")
-    language = models.CharField(max_length=50, default='cpp')
+    language = models.CharField(max_length=50)
+    code = models.TextField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sessions'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+    token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     def __str__(self):
-        return str(self.token)
+        return f"Session {self.id} ({self.language})"

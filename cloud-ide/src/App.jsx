@@ -10,7 +10,7 @@ function App() {
       <Box minH="100vh" bg="#0f0a19" color="gray.500">
         <Routes>
           <Route path="/" element={<LandingPage />} />
-          <Route path="/auth" element={<AuthForm />} /> {/* 👈 add this */}
+          <Route path="/auth" element={<AuthForm />} /> 
           <Route path="/editor/:token" element={<CodeEditor />} />
           <Route path="/editor/new" element={<CodeEditor />} />
 

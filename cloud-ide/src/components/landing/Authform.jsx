@@ -14,8 +14,10 @@ import {
   InputGroup,
   InputRightElement,
 } from "@chakra-ui/react";
-import axios from "axios";
+// We don't need axios here anymore
 import { useNavigate } from "react-router-dom";
+// --- FIX: Import both loginUser and signupUser ---
+import { loginUser, signupUser } from "../api";
 
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -27,21 +29,16 @@ const AuthForm = () => {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const API_BASE = "http://127.0.0.1:8000/api/auth";
+  // We don't need API_BASE anymore
+  // const API_BASE = "http://127.0.0.1:8000/api/auth";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       if (isLogin) {
-        const res = await axios.post(`${API_BASE}/login/`, {
-          username,
-          password,
-        });
-
-        const token = res.data.token;
-        localStorage.setItem("authToken", token);
-        localStorage.setItem("username", username);
+        // This part was already correct
+        await loginUser({ username, password });
 
         toast({
           title: "Login Successful",
@@ -64,7 +61,8 @@ const AuthForm = () => {
           return;
         }
 
-        await axios.post(`${API_BASE}/signup/`, {
+        // --- FIX: Use the signupUser function from api.js ---
+        await signupUser({
           username,
           email,
           password,
@@ -252,3 +250,4 @@ const AuthForm = () => {
 };
 
 export default AuthForm;
+

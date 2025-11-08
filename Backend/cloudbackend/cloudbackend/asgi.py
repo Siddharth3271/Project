@@ -14,9 +14,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudbackend.settings')
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    
-    # ------------------------------------------------------------------
-    # WRAPPER ADDED: Use AllowedHostsOriginValidator to prevent rejection
+    #Use AllowedHostsOriginValidator to prevent rejection
     "websocket": AllowedHostsOriginValidator(
         AuthMiddlewareStack(
             URLRouter(
@@ -24,5 +22,4 @@ application = ProtocolTypeRouter({
             )
         )
     ),
-    # ------------------------------------------------------------------
 })

@@ -1,93 +1,96 @@
-# firstapp/consumers.py
-
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from urllib.parse import parse_qs
 
-class CodeEditorConsumer(AsyncWebsocketConsumer):
-    # This method is called when a connection is established (ws.onopen)
+
+@database_sync_to_async
+def get_user_from_token(token_str):
+    """
+    Asynchronously get a user from a JWT token string.
+    """
+    from rest_framework_simplejwt.tokens import UntypedToken
+    from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+    from rest_framework_simplejwt.authentication import JWTAuthentication
+    from django.contrib.auth.models import AnonymousUser
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+
+    try:
+        # Validate the token
+        UntypedToken(token_str)
+
+        # Authenticate and get user
+        jwt_auth = JWTAuthentication()
+        validated_token = jwt_auth.get_validated_token(token_str)
+        user = jwt_auth.get_user(validated_token)
+        return user
+    except (InvalidToken, TokenError, User.DoesNotExist):
+        return AnonymousUser()
+    except Exception as e:
+        print(f"Error getting user from token: {e}")
+        return AnonymousUser()
+
+
+class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
+
     async def connect(self):
-        # 1. Get the document ID from the URL path
-        self.document_id = self.scope['url_route']['kwargs']['document_id']
-        # 2. Define the group name for this document
-        self.document_group_name = f'editor_{self.document_id}'
+        from django.contrib.auth.models import AnonymousUser
 
-        # 3. Add the new channel to the group (Joining the 'room')
+        #Get token from query params
+        query_params = parse_qs(self.scope["query_string"].decode())
+        token = query_params.get("token", [None])[0]
+
+        if not token:
+            print("Connection attempt with no token.")
+            await self.close(code=4001)
+            return
+
+        #Authenticate user asynchronously
+        self.user = await get_user_from_token(token)
+
+        if isinstance(self.user, AnonymousUser):
+            print("Connection attempt with invalid token.")
+            await self.close(code=4002)
+            return
+
+        #Join room
+        self.room_name = self.scope["url_route"]["kwargs"]["token"]
+        self.room_group_name = f"editor_{self.room_name}"
+
         await self.channel_layer.group_add(
-            self.document_group_name,
+            self.room_group_name,
             self.channel_name
         )
-        
-        # 4. Accept the WebSocket connection
+
         await self.accept()
+        print(f"User {self.user.username} connected to room {self.room_group_name}")
 
-        # Optional: Send the current state of the document to the newly connected user
-        # In a real app, you'd fetch this from a Django model/database.
-        # For simplicity, we assume an initial state.
-        initial_state = {
-            "type": "full_state",
-            "code": "/* Welcome! Start collaborating. */",
-            "language": "cpp",
-        }
-        await self.send(text_data=json.dumps(initial_state))
-
-
-    # This method is called when a message is received from the frontend (ws.send)
-    async def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message_type = text_data_json.get('type')
-        
-        # 1. Handle incoming code updates from a single user
-        if message_type == 'code_update':
-            code = text_data_json.get('code')
-            
-            # 2. Broadcast the update to the entire group (all other collaborators)
-            await self.channel_layer.group_send(
-                self.document_group_name,
-                {
-                    'type': 'code_message', # This calls the 'code_message' method below
-                    'code': code,
-                }
-            )
-        
-        # 3. Handle language change updates from a single user
-        elif message_type == 'language_update':
-            language = text_data_json.get('language')
-            
-            # 4. Broadcast the language change to the entire group
-            await self.channel_layer.group_send(
-                self.document_group_name,
-                {
-                    'type': 'language_message',
-                    'language': language,
-                }
-            )
-
-    # This method is called when the connection closes (ws.onclose)
     async def disconnect(self, close_code):
-        # Remove the channel from the group
-        await self.channel_layer.group_discard(
-            self.document_group_name,
-            self.channel_name
+        if hasattr(self, "room_group_name"):
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+            print(f"User {self.user.username} disconnected.")
+
+    async def receive(self, text_data):
+        data = json.loads(text_data)
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "broadcast_message",
+                "data": data,
+                "sender_username": self.user.username,
+            }
         )
 
-    # --- Handlers for sending messages to the group ---
+    async def broadcast_message(self, event):
+        if self.user.username == event["sender_username"]:
+            return
 
-    # Called when 'type': 'code_message' is sent to the group
-    async def code_message(self, event):
-        code = event['code']
-        
-        # Send the code update back to the WebSocket client
         await self.send(text_data=json.dumps({
-            'type': 'code_update', # Matches the type expected by your React frontend
-            'code': code
-        }))
-
-    # Called when 'type': 'language_message' is sent to the group
-    async def language_message(self, event):
-        language = event['language']
-        
-        # Send the language update back to the WebSocket client
-        await self.send(text_data=json.dumps({
-            'type': 'language_update',
-            'language': language
+            "data": event["data"],
+            "user": event["sender_username"],
         }))
