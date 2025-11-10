@@ -5,73 +5,89 @@ import {
   Button,
   Text,
   VStack,
-  useToast,
   HStack,
   Select,
+  useToast,
+  IconButton,
+  Tooltip,
+  Flex,
+  Divider,
+  Badge,
 } from "@chakra-ui/react";
 import { Editor } from "@monaco-editor/react";
 import { CODE_SNIPPETS } from "../constants";
-import {privateApi} from "./api"; 
-
+import { privateApi } from "./api";
+import { FiCopy, FiPlay, FiUsers, FiLink2 } from "react-icons/fi";
 
 const LanguageSelector = ({ language, onSelect }) => {
-  const languages = Object.keys(CODE_SNIPPETS);
+  const languageLabels = {
+    cpp: "C++",
+    python: "Python",
+    java: "Java",
+  };
+  const languages = Object.keys(languageLabels);
+
   return (
     <Select
       value={language}
       onChange={(e) => onSelect(e.target.value)}
-      width="150px"
-      bg="gray.700"
+      bg="gray.800"
       color="white"
       borderColor="gray.600"
+      width={{ base: "120px", sm: "140px", md: "160px" }}
+      _hover={{ borderColor: "blue.400" }}
+      _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+      sx={{
+        option: {
+          backgroundColor: "#1A202C",
+          color: "white",
+        },
+        "option:hover": {
+          backgroundColor: "#2D3748",
+        },
+      }}
     >
       {languages.map((lang) => (
-        <option key={lang} value={lang} style={{ color: 'black' }}>
-          {lang.charAt(0).toUpperCase() + lang.slice(1)}
+        <option key={lang} value={lang}>
+          {languageLabels[lang]}
         </option>
       ))}
     </Select>
   );
 };
 
-const Output = ({ editorRef, language }) => {
-  // A simple placeholder for the Output component
-  // The original logic for 'executeCode' would go here
-  return (
-    <Box
-      height="25vh"
-      p={4}
-      bg="gray.900"
-      borderColor="gray.700"
-      borderWidth={1}
-      borderRadius="md"
-    >
-      <Text color="gray.400">Code output will appear here...</Text>
-    </Box>
-  );
-};
+const Output = ({ editorRef, language }) => (
+  <Box
+    h={{ base: "20vh", md: "25vh" }}
+    bg="rgba(17, 25, 40, 0.8)"
+    backdropFilter="blur(6px)"
+    borderRadius="md"
+    borderWidth="1px"
+    borderColor="gray.700"
+    p={4}
+    fontFamily="monospace"
+    overflowY="auto"
+  >
+    <Text color="gray.400">Code output will appear here...</Text>
+  </Box>
+);
 
 const BASE_WS_URL = "ws://127.0.0.1:8000/ws/editor/";
 
 const CodeEditor = () => {
-  const { token: roomToken } = useParams(); 
+  const { token: roomToken } = useParams();
   const editorRef = useRef();
   const wsRef = useRef(null);
   const [value, setValue] = useState("");
   const [language, setLanguage] = useState("cpp");
-
   const isCollaborating = !!roomToken;
   const toast = useToast();
   const navigate = useNavigate();
 
-  const localUsernameRef = useRef(localStorage.getItem("username"));
-
-  // --- WebSocket Setup ---
   useEffect(() => {
     if (!roomToken) return;
 
     const accessToken = localStorage.getItem("access");
-
     if (!accessToken) {
       toast({
         title: "Authentication Required",
@@ -82,32 +98,20 @@ const CodeEditor = () => {
     }
 
     const WS_URL = `${BASE_WS_URL}${roomToken}/?token=${accessToken}`;
-    if (wsRef.current) wsRef.current.close();
-
     const ws = new WebSocket(WS_URL);
     wsRef.current = ws;
 
-    ws.onopen = () => {
-      console.log(`Connected to session ${roomToken}`);
-    };
-
+    ws.onopen = () => console.log(`Connected to session ${roomToken}`);
     ws.onmessage = (event) => {
-      // Check if event.data is a string before parsing
-      if (typeof event.data === 'string') {
+      if (typeof event.data === "string") {
         try {
           const { data, user } = JSON.parse(event.data);
-
-          // Handle messages
           switch (data.type) {
             case "code_update":
               setValue(data.code);
               break;
             case "language_update":
               setLanguage(data.language);
-              break;
-            case "cursor_update":
-              console.log(`Cursor from ${user}:`, data.position);
-              // Cursor rendering logic goes here
               break;
             case "full_state":
               setValue(data.code);
@@ -117,140 +121,162 @@ const CodeEditor = () => {
               console.warn("Unknown message type:", data.type);
           }
         } catch (e) {
-          console.error("Failed to parse WebSocket message:", e);
+          console.error("Failed to parse message:", e);
         }
       }
     };
-
-    ws.onclose = (event) => {
-      console.log("WebSocket closed", event.code);
-      if (event.code === 4001 || event.code === 4002) {
-        toast({
-          title: "Auth Error",
-          description: "Could not authenticate WebSocket. Please log in again.",
-          status: "error",
-        });
-        navigate("/auth");
-      }
-    };
-
-    ws.onerror = (err) => {
-      console.error("WebSocket Error:", err);
-    };
+    ws.onclose = (e) => console.log("WebSocket closed:", e.code);
+    ws.onerror = (e) => console.error("WebSocket Error:", e);
 
     return () => ws.close();
   }, [roomToken, toast, navigate]);
 
-  // --- Create New Collaboration Session ---
   const handleStartCollaboration = async () => {
     try {
-      
       const res = await privateApi.post("/api/sessions/create/", {
         initial_code: value,
-        language: language,
+        language,
       });
-
-      if (res.data.token) {
-        navigate(`/editor/${res.data.token}`);
-      } else {
-        throw new Error("Token not received.");
-      }
+      if (res.data.token) navigate(`/editor/${res.data.token}`);
     } catch (error) {
-      console.error("Failed to start collaboration:", error);
       toast({
         title: "Failed to start collaboration",
         description: error.response?.data?.detail || error.message,
         status: "error",
-        duration: 3000,
-        isClosable: true,
       });
     }
   };
 
-  // --- Editor Mount Logic ---
   const onMount = (editor) => {
     editorRef.current = editor;
     editor.focus();
-
-    editor.onDidChangeCursorPosition((e) => {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(
-          JSON.stringify({
-            type: "cursor_update",
-            position: e.position,
-          })
-        );
-      }
-    });
-
-    if (!roomToken) {
-      setValue(CODE_SNIPPETS[language] || "");
-    }
+    if (!roomToken) setValue(CODE_SNIPPETS[language] || "");
   };
 
   const handleEditorChange = (newValue) => {
     setValue(newValue);
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(
-        JSON.stringify({
-          type: "code_update",
-          code: newValue,
-        })
-      );
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "code_update", code: newValue }));
     }
   };
 
-  const onSelect = (newLanguage) => {
-    setLanguage(newLanguage);
-    const newValue = CODE_SNIPPETS[newLanguage] || "";
-    setValue(newValue);
-
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(
-        JSON.stringify({
-          type: "language_update",
-          language: newLanguage,
-        })
-      );
+  const onSelect = (newLang) => {
+    setLanguage(newLang);
+    setValue(CODE_SNIPPETS[newLang] || "");
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "language_update", language: newLang }));
     }
   };
 
   return (
-    <Box>
-      <VStack spacing={4} align="stretch">
-        <HStack justifyContent="space-between">
+    <Box
+      minH="100vh"
+      bgGradient="linear(to-br, #0a192f, #172a45)"
+      color="white"
+      p={{ base: 3, md: 6 }}
+    >
+      {/* Top Toolbar */}
+      <Flex
+        direction={{ base: "column", md: "row" }}
+        justify="space-between"
+        align={{ base: "stretch", md: "center" }}
+        bg="rgba(255,255,255,0.05)"
+        backdropFilter="blur(10px)"
+        p={{ base: 3, md: 4 }}
+        borderRadius="xl"
+        boxShadow="0 4px 20px rgba(0,0,0,0.2)"
+        mb={4}
+        wrap="wrap"
+        gap={3}
+      >
+        <HStack spacing={4} flexWrap="wrap">
+          <Text fontWeight="extrabold" fontSize={{ base: "md", md: "lg" }} color="blue.300">
+            Cloud IDE
+          </Text>
+          <Divider orientation="vertical" borderColor="gray.600" display={{ base: "none", md: "block" }} />
           <LanguageSelector language={language} onSelect={onSelect} />
-          {isCollaborating ? (
-            <Text fontSize="sm" color="green.300">
-              Session ID: <b>{roomToken}</b>
-              <Button
-                size="xs"
-                ml={4}
-                onClick={() =>
-                  navigator.clipboard.writeText(window.location.href)
-                }
-              >
-                Copy Link
-              </Button>
-            </Text>
-          ) : (
-            <Button colorScheme="green" onClick={handleStartCollaboration}>
-              Start Collaboration
-            </Button>
-          )}
         </HStack>
 
+        <HStack spacing={3} flexWrap="wrap" mt={{ base: 2, md: 0 }}>
+          {isCollaborating ? (
+            <>
+              <Button
+               colorScheme="green"
+               leftIcon={<FiUsers />}
+               size={{ base: "sm", md: "md" }}
+               variant="solid"
+               isDisabled
+             >
+      Live Session
+    </Button>
+              <Tooltip label="Copy session link">
+                <Button
+                   leftIcon={<FiLink2 />}
+                   colorScheme="blue"
+                   size={{ base: "sm", md: "md" }}
+                   variant="outline"
+                   onClick={() => navigator.clipboard.writeText(window.location.href)}
+                >
+             Copy Link
+    </Button>
+              </Tooltip>
+            </>
+          ) : (
+            <Tooltip label="Start new collaboration session">
+              <Button
+                colorScheme="green"
+                leftIcon={<FiUsers />}
+                onClick={handleStartCollaboration}
+                size={{ base: "sm", md: "md" }}
+              >
+                Start Collaboration
+              </Button>
+            </Tooltip>
+          )}
+          <Tooltip label="Run code (coming soon)">
+            <IconButton
+              icon={<FiPlay />}
+              colorScheme="blue"
+              variant="solid"
+              size="sm"
+            />
+          </Tooltip>
+        </HStack>
+      </Flex>
+
+      {/* Editor */}
+      <Box
+        border="1px solid"
+        borderColor="gray.700"
+        borderRadius="md"
+        overflow="hidden"
+        boxShadow="0 0 25px rgba(0,0,0,0.3)"
+        h={{ base: "60vh", md: "70vh" }}
+      >
         <Editor
-          height="75vh"
+          height="100%"
           theme="vs-dark"
           language={language}
           value={value}
           onMount={onMount}
           onChange={handleEditorChange}
+          options={{
+            fontSize: 15,
+            minimap: { enabled: false },
+            smoothScrolling: true,
+            padding: { top: 12 },
+            cursorBlinking: "phase",
+          }}
         />
+      </Box>
 
+      {/* Output Panel */}
+      <Box mt={6}>
+        <Text fontWeight="extrabold" mb={2} color="gray.300" fontSize={{ base: "sm", md: "md" }}>
+          Output Console
+        </Text>
         <Output editorRef={editorRef} language={language} />
-      </VStack>
+      </Box>
     </Box>
   );
 };

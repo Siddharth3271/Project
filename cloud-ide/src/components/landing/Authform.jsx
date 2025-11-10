@@ -14,9 +14,7 @@ import {
   InputGroup,
   InputRightElement,
 } from "@chakra-ui/react";
-// We don't need axios here anymore
 import { useNavigate } from "react-router-dom";
-// --- FIX: Import both loginUser and signupUser ---
 import { loginUser, signupUser } from "../api";
 
 const AuthForm = () => {
@@ -29,17 +27,11 @@ const AuthForm = () => {
   const toast = useToast();
   const navigate = useNavigate();
 
-  // We don't need API_BASE anymore
-  // const API_BASE = "http://127.0.0.1:8000/api/auth";
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       if (isLogin) {
-        // This part was already correct
         await loginUser({ username, password });
-
         toast({
           title: "Login Successful",
           description: "Welcome back!",
@@ -47,10 +39,8 @@ const AuthForm = () => {
           duration: 2000,
           isClosable: true,
         });
-
         setTimeout(() => navigate("/editor/new"), 1000);
       } else {
-        // 🔹 SIGNUP
         if (password !== confirmPassword) {
           toast({
             title: "Passwords do not match!",
@@ -60,14 +50,7 @@ const AuthForm = () => {
           });
           return;
         }
-
-        // --- FIX: Use the signupUser function from api.js ---
-        await signupUser({
-          username,
-          email,
-          password,
-        });
-
+        await signupUser({ username, email, password });
         toast({
           title: "Account Created",
           description: "You can now log in",
@@ -75,7 +58,6 @@ const AuthForm = () => {
           duration: 2000,
           isClosable: true,
         });
-
         setIsLogin(true);
       }
     } catch (error) {
@@ -93,29 +75,40 @@ const AuthForm = () => {
 
   return (
     <Box
-      bg="#0C67A0"
+      bgGradient="linear(to-br, #0077c2, #0099ff)"
       minH="100vh"
       display="flex"
       alignItems="center"
       justifyContent="center"
-      fontFamily="sans-serif"
       p={4}
     >
       <Box
-        bg="white"
-        p={8}
+        bg="rgba(255, 255, 255, 0.85)"
+        backdropFilter="blur(12px)"
+        p={10}
         rounded="2xl"
-        shadow="2xl"
+        boxShadow="0 8px 30px rgba(0, 0, 0, 0.2)"
+        border="1px solid rgba(255,255,255,0.4)"
         width={{ base: "90%", sm: "400px" }}
-        color="black"
+        animation="fadeIn 0.8s ease-in-out"
+        sx={{
+          "@keyframes fadeIn": {
+            from: { opacity: 0, transform: "translateY(10px)" },
+            to: { opacity: 1, transform: "translateY(0)" },
+          },
+        }}
       >
-        <HStack spacing={0} mb={6}>
+        <HStack spacing={0} mb={8}>
           <Button
             flex="1"
             borderRadius="md"
             bg={isLogin ? "blue.700" : "gray.200"}
             color={isLogin ? "white" : "black"}
-            _hover={{ bg: isLogin ? "blue.800" : "gray.300" }}
+            _hover={{
+              transform: "scale(1.05)",
+              bg: isLogin ? "blue.800" : "gray.300",
+              transition: "0.2s ease-in-out",
+            }}
             onClick={() => setIsLogin(true)}
           >
             Log In
@@ -125,7 +118,11 @@ const AuthForm = () => {
             borderRadius="md"
             bg={!isLogin ? "blue.700" : "gray.200"}
             color={!isLogin ? "white" : "black"}
-            _hover={{ bg: !isLogin ? "blue.800" : "gray.300" }}
+            _hover={{
+              transform: "scale(1.05)",
+              bg: !isLogin ? "blue.800" : "gray.300",
+              transition: "0.2s ease-in-out",
+            }}
             onClick={() => setIsLogin(false)}
           >
             Sign Up
@@ -133,12 +130,17 @@ const AuthForm = () => {
         </HStack>
 
         <form onSubmit={handleSubmit}>
-          <VStack spacing={4} align="stretch">
-            <Heading size="md" textAlign="center" color="gray.700">
+          <VStack spacing={5} align="stretch">
+            <Heading
+              size="lg"
+              textAlign="center"
+              color="gray.800"
+              fontWeight="extrabold"
+              letterSpacing="wide"
+            >
               {isLogin ? "Welcome Back" : "Create Account"}
             </Heading>
 
-            {/* Username Field */}
             <FormControl>
               <FormLabel color="gray.700">Username</FormLabel>
               <Input
@@ -147,13 +149,11 @@ const AuthForm = () => {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                bg="gray.50"
-                color="black"
-                _placeholder={{ color: "gray.500" }}
+                bg="whiteAlpha.800"
+                _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
               />
             </FormControl>
 
-            {/* Email only for signup */}
             {!isLogin && (
               <FormControl>
                 <FormLabel color="gray.700">Email</FormLabel>
@@ -163,14 +163,12 @@ const AuthForm = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  bg="gray.50"
-                  color="black"
-                  _placeholder={{ color: "gray.500" }}
+                  bg="whiteAlpha.800"
+                  _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                 />
               </FormControl>
             )}
 
-            {/* Password */}
             <FormControl>
               <FormLabel color="gray.700">Password</FormLabel>
               <InputGroup>
@@ -180,14 +178,14 @@ const AuthForm = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  bg="gray.50"
-                  color="black"
-                  _placeholder={{ color: "gray.500" }}
+                  bg="whiteAlpha.800"
+                  _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                 />
                 <InputRightElement width="4.5rem">
                   <Button
-                    h="1.75rem"
                     size="sm"
+                    variant="ghost"
+                    colorScheme="blue"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? "Hide" : "Show"}
@@ -196,7 +194,6 @@ const AuthForm = () => {
               </InputGroup>
             </FormControl>
 
-            {/* Confirm password only for signup */}
             {!isLogin && (
               <FormControl>
                 <FormLabel color="gray.700">Confirm Password</FormLabel>
@@ -206,9 +203,8 @@ const AuthForm = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  bg="gray.50"
-                  color="black"
-                  _placeholder={{ color: "gray.500" }}
+                  bg="whiteAlpha.800"
+                  _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                 />
               </FormControl>
             )}
@@ -224,8 +220,12 @@ const AuthForm = () => {
               colorScheme="blue"
               w="full"
               mt={2}
-              bg="blue.700"
-              _hover={{ bg: "blue.800" }}
+              fontWeight="bold"
+              transition="all 0.2s ease-in-out"
+              _hover={{
+                transform: "scale(1.03)",
+                boxShadow: "0 0 15px rgba(49,130,206,0.5)",
+              }}
             >
               {isLogin ? "Log In" : "Sign Up"}
             </Button>
@@ -250,4 +250,3 @@ const AuthForm = () => {
 };
 
 export default AuthForm;
-
