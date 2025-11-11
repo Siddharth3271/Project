@@ -18,6 +18,9 @@ import { Editor } from "@monaco-editor/react";
 import { CODE_SNIPPETS } from "../constants";
 import { privateApi } from "./api";
 import { FiCopy, FiPlay, FiUsers, FiLink2 } from "react-icons/fi";
+import Output from "./Output";
+
+
 
 const LanguageSelector = ({ language, onSelect }) => {
   const languageLabels = {
@@ -56,36 +59,21 @@ const LanguageSelector = ({ language, onSelect }) => {
   );
 };
 
-const Output = ({ editorRef, language }) => (
-  <Box
-    h={{ base: "20vh", md: "25vh" }}
-    bg="rgba(17, 25, 40, 0.8)"
-    backdropFilter="blur(6px)"
-    borderRadius="md"
-    borderWidth="1px"
-    borderColor="gray.700"
-    p={4}
-    fontFamily="monospace"
-    overflowY="auto"
-  >
-    <Text color="gray.400">Code output will appear here...</Text>
-  </Box>
-);
-
 const BASE_WS_URL = "ws://127.0.0.1:8000/ws/editor/";
 
 const CodeEditor = () => {
   const { token: roomToken } = useParams();
   const editorRef = useRef();
+  const outputRef = useRef();
   const wsRef = useRef(null);
   const [value, setValue] = useState("");
   const [language, setLanguage] = useState("cpp");
-  const isCollaborating = !!roomToken;
+  const isCollaborating = !!roomToken && roomToken !== "new";
   const toast = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!roomToken) return;
+    if (!isCollaborating) return;
 
     const accessToken = localStorage.getItem("access");
     if (!accessToken) {
@@ -129,7 +117,7 @@ const CodeEditor = () => {
     ws.onerror = (e) => console.error("WebSocket Error:", e);
 
     return () => ws.close();
-  }, [roomToken, toast, navigate]);
+  }, [roomToken, toast, navigate, isCollaborating]);
 
   const handleStartCollaboration = async () => {
     try {
@@ -150,7 +138,9 @@ const CodeEditor = () => {
   const onMount = (editor) => {
     editorRef.current = editor;
     editor.focus();
-    if (!roomToken) setValue(CODE_SNIPPETS[language] || "");
+    if (!isCollaborating) {
+      setValue(CODE_SNIPPETS[language] || "");
+    }
   };
 
   const handleEditorChange = (newValue) => {
@@ -201,24 +191,24 @@ const CodeEditor = () => {
           {isCollaborating ? (
             <>
               <Button
-               colorScheme="green"
-               leftIcon={<FiUsers />}
-               size={{ base: "sm", md: "md" }}
-               variant="solid"
-               isDisabled
-             >
-      Live Session
-    </Button>
+                colorScheme="green"
+                leftIcon={<FiUsers />}
+                size={{ base: "sm", md: "md" }}
+                variant="solid"
+                isDisabled
+              >
+                Live Session
+              </Button>
               <Tooltip label="Copy session link">
                 <Button
-                   leftIcon={<FiLink2 />}
-                   colorScheme="blue"
-                   size={{ base: "sm", md: "md" }}
-                   variant="outline"
-                   onClick={() => navigator.clipboard.writeText(window.location.href)}
+                  leftIcon={<FiLink2 />}
+                  colorScheme="blue"
+                  size={{ base: "sm", md: "md" }}
+                  variant="outline"
+                  onClick={() => navigator.clipboard.writeText(window.location.href)}
                 >
-             Copy Link
-    </Button>
+                  Copy Link
+                </Button>
               </Tooltip>
             </>
           ) : (
@@ -233,12 +223,14 @@ const CodeEditor = () => {
               </Button>
             </Tooltip>
           )}
-          <Tooltip label="Run code (coming soon)">
+          <Tooltip label="Run code">
             <IconButton
               icon={<FiPlay />}
               colorScheme="blue"
               variant="solid"
               size="sm"
+              onClick={() => outputRef.current?.runCode()}
+              isLoading={outputRef.current?.isLoading} 
             />
           </Tooltip>
         </HStack>
@@ -275,7 +267,7 @@ const CodeEditor = () => {
         <Text fontWeight="extrabold" mb={2} color="gray.300" fontSize={{ base: "sm", md: "md" }}>
           Output Console
         </Text>
-        <Output editorRef={editorRef} language={language} />
+        <Output editorRef={editorRef} language={language} ref={outputRef}/>
       </Box>
     </Box>
   );
