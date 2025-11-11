@@ -18,7 +18,7 @@ def get_user_from_token(token_str):
     User = get_user_model()
 
     try:
-        # Validate the token
+        # Validate token
         UntypedToken(token_str)
 
         # Authenticate and get user
@@ -38,7 +38,7 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         from django.contrib.auth.models import AnonymousUser
 
-        #Get token from query params
+        # Get token from query params
         query_params = parse_qs(self.scope["query_string"].decode())
         token = query_params.get("token", [None])[0]
 
@@ -47,7 +47,7 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
             await self.close(code=4001)
             return
 
-        #Authenticate user asynchronously
+        # Authenticate user
         self.user = await get_user_from_token(token)
 
         if isinstance(self.user, AnonymousUser):
@@ -55,7 +55,7 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
             await self.close(code=4002)
             return
 
-        #Join room
+        # Join room
         self.room_name = self.scope["url_route"]["kwargs"]["token"]
         self.room_group_name = f"editor_{self.room_name}"
 
@@ -77,6 +77,20 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+        msg_type = data.get("type")
+
+        # 🟦 Handle typing event separately
+        if msg_type == "typing":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "typing_event",
+                    "user": self.user.username,
+                }
+            )
+            return
+
+        # Otherwise, broadcast normal code/language updates
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -87,10 +101,22 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
         )
 
     async def broadcast_message(self, event):
+        # Don't send message back to the sender
         if self.user.username == event["sender_username"]:
             return
 
         await self.send(text_data=json.dumps({
             "data": event["data"],
-            "user": event["sender_username"],
+            "user": {"username": event["sender_username"]},
+        }))
+
+    # Handle typing event
+    async def typing_event(self, event):
+        # Send a small payload to all except sender
+        if self.user.username == event["user"]:
+            return
+
+        await self.send(text_data=json.dumps({
+            "data": {"type": "typing"},
+            "user": {"username": event["user"]},
         }))

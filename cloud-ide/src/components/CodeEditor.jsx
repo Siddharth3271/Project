@@ -71,7 +71,10 @@ const CodeEditor = () => {
   const isCollaborating = !!roomToken && roomToken !== "new";
   const toast = useToast();
   const navigate = useNavigate();
+  const [currentlyTyping, setCurrentlyTyping] = useState(null);
+  const typingTimeoutRef = useRef();
 
+  
   useEffect(() => {
     if (!isCollaborating) return;
 
@@ -100,6 +103,16 @@ const CodeEditor = () => {
               break;
             case "language_update":
               setLanguage(data.language);
+              break;
+            case "typing":
+              if (user && user.username) {
+                setCurrentlyTyping(user.username);
+                // Hide after 2.5s of inactivity
+                clearTimeout(typingTimeoutRef.current);
+                typingTimeoutRef.current = setTimeout(() => {
+                  setCurrentlyTyping(null);
+                }, 2500);
+              }
               break;
             case "full_state":
               setValue(data.code);
@@ -147,6 +160,8 @@ const CodeEditor = () => {
     setValue(newValue);
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "code_update", code: newValue }));
+      //Indicate typing activity
+      wsRef.current.send(JSON.stringify({ type: "typing" }));
     }
   };
 
@@ -230,11 +245,29 @@ const CodeEditor = () => {
               variant="solid"
               size="sm"
               onClick={() => outputRef.current?.runCode()}
-              isLoading={outputRef.current?.isLoading} 
+              isLoading={outputRef.current?.isLoading}
             />
           </Tooltip>
         </HStack>
       </Flex>
+
+      {
+    currentlyTyping && (
+      <Box
+        bg="rgba(255,255,255,0.08)"
+        color="blue.300"
+        px={3}
+        py={1}
+        mb={2}
+        borderRadius="md"
+        fontSize="sm"
+        textAlign="center"
+        transition="all 0.3s ease"
+      >
+        💬 {currentlyTyping} is typing...
+      </Box>
+    )
+  }
 
       {/* Editor */}
       <Box
@@ -267,7 +300,7 @@ const CodeEditor = () => {
         <Text fontWeight="extrabold" mb={2} color="gray.300" fontSize={{ base: "sm", md: "md" }}>
           Output Console
         </Text>
-        <Output editorRef={editorRef} language={language} ref={outputRef}/>
+        <Output editorRef={editorRef} language={language} ref={outputRef} />
       </Box>
     </Box>
   );
