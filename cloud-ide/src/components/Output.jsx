@@ -1,21 +1,29 @@
 import React, { useState, useImperativeHandle, forwardRef } from "react";
-import { Box, Text, Button, useToast, HStack, Spinner, IconButton } from "@chakra-ui/react";
+import { Box, Text, useToast, HStack, Spinner, IconButton } from "@chakra-ui/react";
 import { FiTrash2 } from "react-icons/fi";
 import { executeCode } from "./api";
 
-const Output = forwardRef(({ editorRef, language }, ref) => {
+const Output=forwardRef(({ editorRef, language }, ref) => {
   const toast = useToast();
   const [output, setOutput] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [stdin,setStdin]=useState("");
 
   // Expose runCode() to parent (CodeEditor)
-  useImperativeHandle(ref, () => ({
+  useImperativeHandle(ref, ()=>({
     runCode,
     isLoading,
   }));
 
-  const runCode = async () => {
+  const runCode = async()=>{
+    if(!editorRef.current){
+      toast({
+        title: "Editor not ready",
+        status: "error",
+      });
+      return;
+    }
     const sourceCode = editorRef.current.getValue();
     if (!sourceCode.trim()) {
       toast({
@@ -27,15 +35,16 @@ const Output = forwardRef(({ editorRef, language }, ref) => {
       return;
     }
 
-    try {
+    try{
       setIsLoading(true);
       setOutput(null);
-      const { run: result } = await executeCode(language, sourceCode);
+      const { run: result }=await executeCode(language, sourceCode, stdin);
 
-      const combinedOutput = (result.output || result.stdout || "").split("\n");
+      const combinedOutput=(result.output || result.stdout || "").split("\n");
       setOutput(combinedOutput);
       setIsError(!!result.stderr);
-    } catch (error) {
+    } 
+    catch (error){
       console.error(error);
       toast({
         title: "Execution Failed",
@@ -43,14 +52,16 @@ const Output = forwardRef(({ editorRef, language }, ref) => {
         status: "error",
         duration: 4000,
       });
-    } finally {
+    } 
+    finally{
       setIsLoading(false);
     }
   };
 
-  const clearOutput = () => setOutput(null);
+  const clearOutput=()=>setOutput(null);
 
-  return (
+  return(
+    
     <Box
       bg="rgba(17, 25, 40, 0.8)"
       backdropFilter="blur(10px)"
@@ -63,6 +74,28 @@ const Output = forwardRef(({ editorRef, language }, ref) => {
       boxShadow="0 0 25px rgba(0,0,0,0.3)"
       overflowY="auto"
     >
+      <Box mb={4}>
+      <Text fontSize="sm" mb={1} color="gray.400">
+        Program Input (STDIN)
+      </Text>
+      <textarea
+        value={stdin}
+        onChange={(e) => setStdin(e.target.value)}
+        placeholder={`Enter input for your program here...`}
+        style={{
+          width: "100%",
+          height: "100px",
+          background: "#0f172a",
+          color: "white",
+          border: "1px solid #334155",
+          borderRadius: "6px",
+          padding: "8px",
+          fontFamily: "monospace",
+          fontSize: "14px",
+        }}
+      />
+      </Box>
+
       <HStack justify="space-between" mb={3}>
         <HStack spacing={2}>
           {isLoading && (

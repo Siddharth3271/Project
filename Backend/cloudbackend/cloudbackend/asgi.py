@@ -5,10 +5,8 @@ import os
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
-from channels.security.websocket import AllowedHostsOriginValidator # <-- NEW IMPORT
-
-import cloudapp.routing # <-- Import your app's routing
-# from . import cloudapp
+from channels.security.websocket import AllowedHostsOriginValidator
+import cloudapp.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cloudbackend.settings')
 

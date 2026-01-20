@@ -25,15 +25,11 @@ Including another URLconf
 # cloudbackend/urls.py
 
 from django.contrib import admin
-from django.urls import path, include  # <-- ADD 'include' here
+from django.urls import path, include 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # ----------------------------------------------------
-    # ADD THIS LINE to include your application's URLs
-    # Every URL starting with 'api/' will be handled by cloudapp
+    
+    # Every URL will be handled by cloudapp
     path('', include('cloudapp.urls')), 
-    # OR if you prefer to namespace your API:
-    # path('api/', include('cloudapp.urls')), 
-    # ----------------------------------------------------
 ]

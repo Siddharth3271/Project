@@ -74,7 +74,7 @@ TEMPLATES = [
     },]
 
 # WSGI_APPLICATION = "cloudbackend.wsgi.application"
-ASGI_APPLICATION = "cloudbackend.asgi.application" # This is correct
+ASGI_APPLICATION = "cloudbackend.asgi.application"
 
 CHANNEL_LAYERS = {
     "default": {

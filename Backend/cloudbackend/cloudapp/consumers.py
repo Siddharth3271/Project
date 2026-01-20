@@ -79,7 +79,7 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         msg_type = data.get("type")
 
-        # 🟦 Handle typing event separately
+        #Handle typing event separately
         if msg_type == "typing":
             await self.channel_layer.group_send(
                 self.room_group_name,
