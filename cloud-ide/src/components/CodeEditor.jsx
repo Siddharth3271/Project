@@ -19,6 +19,7 @@ import { CODE_SNIPPETS } from "../constants";
 import { privateApi } from "./api";
 import { FiCopy, FiPlay, FiUsers, FiLink2 } from "react-icons/fi";
 import Output from "./Output";
+import CodeforcesLoader from "./CodeforcesLoader";
 
 
 
@@ -73,6 +74,7 @@ const CodeEditor = () => {
   const navigate = useNavigate();
   const [currentlyTyping, setCurrentlyTyping] = useState(null);
   const typingTimeoutRef = useRef();
+  const [stdin, setStdin] = useState("");
 
   
   useEffect(() => {
@@ -295,13 +297,36 @@ const CodeEditor = () => {
         />
       </Box>
 
+      {/* Codeforces Loader */}
+      <CodeforcesLoader onLoadSample={(input) => setStdin(input)} />
+
+        <Box mt={6}>
+        <Text
+          fontWeight="extrabold"
+          mb={2}
+          color="gray.300"
+          fontSize={{ base: "sm", md: "md" }}
+        >
+          Output Console
+        </Text>
+
+        <Output
+          editorRef={editorRef}
+          language={language}
+          ref={outputRef}
+          stdin={stdin}
+          setStdin={setStdin}
+        />
+        </Box>
+
+
       {/* Output Panel */}
-      <Box mt={6}>
+      {/* <Box mt={6}>
         <Text fontWeight="extrabold" mb={2} color="gray.300" fontSize={{ base: "sm", md: "md" }}>
           Output Console
         </Text>
         <Output editorRef={editorRef} language={language} ref={outputRef} />
-      </Box>
+      </Box> */}
     </Box>
   );
 };

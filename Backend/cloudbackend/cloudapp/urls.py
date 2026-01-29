@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views_auth, views
+from . import views_auth, views, create_session_view
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -16,4 +16,8 @@ urlpatterns = [
 
     # Collaboration route
     path('api/sessions/create/', views.create_session, name='create_session'),
+
+    # Codeforces route
+    # path('api/codeforces/fetch/', create_session_view.fetch_codeforces_problem, name='fetch_codeforces_problem')
+    path('api/codeforces/fetch/', views.fetch_codeforces_problem, name='fetch_codeforces_problem'),
 ]
