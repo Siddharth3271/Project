@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import CodeEditor from "./components/CodeEditor";
 import LandingPage from "./components/landing/LandingPage";
 import AuthForm from "./components/landing/Authform"; // 👈 import here
+import ResetPassword from "./components/ResetPassword";
+import ForgotPassword from "./components/ForgotPassword";
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
               </Box>
             }
           />
+          <Route path="/reset-password/:uidb64/:token" element={<ResetPassword/>}/>
+          <Route path="/forgot-password" element={<ForgotPassword/>}/>
         </Routes>
       </Box>
     </Router>

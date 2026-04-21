@@ -3,12 +3,14 @@ import { Box, Text, useToast, HStack, Spinner, IconButton } from "@chakra-ui/rea
 import { FiTrash2 } from "react-icons/fi";
 import { executeCode } from "./api";
 
-const Output=forwardRef(({ editorRef, language }, ref) => {
+
+// const Output=forwardRef(({ editorRef, language }, ref) => {
+  const Output = forwardRef(({ editorRef, language, stdin, setStdin }, ref) => {
   const toast = useToast();
   const [output, setOutput] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
-  const [stdin,setStdin]=useState("");
+  // const [stdin,setStdin]=useState("");
 
   // Expose runCode() to parent (CodeEditor)
   useImperativeHandle(ref, ()=>({

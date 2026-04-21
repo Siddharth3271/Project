@@ -15,16 +15,16 @@ export const executeCode = async (language, sourceCode, stdin) => {
         content: sourceCode,
       },
     ],
-    stdin:stdin,
+    stdin: stdin,
   });
   return response.data;
 };
 
 // === DJANGO BACKEND API ===
 
-// --- 1. Public API Instance (for login, signup) ---
-// This one does NOT have the interceptor
-const publicApi = axios.create({
+// --- 1. Public API Instance (for login, signup, password reset) ---
+// --- FIX: Added 'export' here ---
+export const publicApi = axios.create({
   baseURL: "http://127.0.0.1:8000",
   headers: {
     "Content-Type": "application/json",
@@ -73,4 +73,3 @@ export const logoutUser = () => {
   localStorage.removeItem("refresh");
   localStorage.removeItem("username");
 };
-
