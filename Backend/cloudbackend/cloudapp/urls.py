@@ -20,4 +20,7 @@ urlpatterns = [
     # Codeforces route
     # path('api/codeforces/fetch/', create_session_view.fetch_codeforces_problem, name='fetch_codeforces_problem')
     path('api/codeforces/fetch/', views.fetch_codeforces_problem, name='fetch_codeforces_problem'),
+
+    path('api/auth/request-reset-email/', views.RequestPasswordResetEmail.as_view(), name='request-reset-email'),
+    path('api/auth/password-reset-complete/', views.SetNewPassword.as_view(), name='password-reset-complete'),
 ]

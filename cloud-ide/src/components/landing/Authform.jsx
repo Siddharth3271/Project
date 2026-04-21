@@ -1,23 +1,38 @@
 import React, { useState } from "react";
-import {Box,Button,Input,Text,VStack,HStack,Link,useToast,Heading,FormControl,FormLabel,InputGroup,InputRightElement} from "@chakra-ui/react";
-import { useNavigate } from "react-router-dom";
+import {
+  Box,
+  Button,
+  Input,
+  Text,
+  VStack,
+  HStack,
+  Link, // Chakra UI's link (used for the toggle at the bottom)
+  useToast,
+  Heading,
+  FormControl,
+  FormLabel,
+  InputGroup,
+  InputRightElement
+} from "@chakra-ui/react";
+// --- FIX: Import Link as RouterLink from react-router-dom ---
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { loginUser, signupUser } from "../api";
 
 const AuthForm = () => {
-  const [isLogin,setIsLogin]=useState(true);
-  const [showPassword,setShowPassword]=useState(false);
-  const [email,setEmail]=useState("");
-  const [username,setUsername]=useState("");
-  const [password,setPassword]=useState("");
-  const [confirmPassword,setConfirmPassword]=useState("");
-  const toast=useToast();
-  const navigate=useNavigate();
+  const [isLogin, setIsLogin] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const toast = useToast();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try{
-      if (isLogin){
-        await loginUser({username, password});
+    try {
+      if (isLogin) {
+        await loginUser({ username, password });
         toast({
           title: "Login Successful",
           description: "Welcome back!",
@@ -26,9 +41,8 @@ const AuthForm = () => {
           isClosable: true,
         });
         setTimeout(() => navigate("/editor/new"), 1000);
-      } 
-      else{
-        if(password!==confirmPassword){
+      } else {
+        if (password !== confirmPassword) {
           toast({
             title: "Passwords do not match!",
             status: "error",
@@ -47,13 +61,11 @@ const AuthForm = () => {
         });
         setIsLogin(true);
       }
-    } 
-    catch(error){
+    } catch (error) {
       console.error(error);
       toast({
         title: "Error",
-        description:
-          error.response?.data?.error || "Something went wrong!",
+        description: error.response?.data?.error || "Something went wrong!",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -101,13 +113,18 @@ const AuthForm = () => {
           >
             Log In
           </Button>
-          <Button flex="1" borderRadius="md" bg={!isLogin ? "blue.700" : "gray.200"} color={!isLogin ? "white" : "black"}
+          <Button 
+            flex="1" 
+            borderRadius="md" 
+            bg={!isLogin ? "blue.700" : "gray.200"} 
+            color={!isLogin ? "white" : "black"}
             _hover={{
               transform: "scale(1.05)",
               bg: !isLogin ? "blue.800" : "gray.300",
               transition: "0.2s ease-in-out",
             }}
-            onClick={() => setIsLogin(false)}>
+            onClick={() => setIsLogin(false)}
+          >
             Sign Up
           </Button>
         </HStack>
@@ -192,10 +209,11 @@ const AuthForm = () => {
               </FormControl>
             )}
 
+            {/* --- FIX: Used RouterLink here to prevent page reload --- */}
             {isLogin && (
-              <Link href="#" color="blue.600" fontSize="sm" alignSelf="flex-end">
+              <Text as={RouterLink} to="/forgot-password" color="blue.500" fontSize="sm">
                 Forgot Password?
-              </Link>
+              </Text>
             )}
 
             <Button
@@ -214,9 +232,7 @@ const AuthForm = () => {
             </Button>
 
             <Text fontSize="sm" textAlign="center" color="gray.600">
-              {isLogin
-                ? "Don't have an account?"
-                : "Already have an account?"}{" "}
+              {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
               <Link color="blue.600" onClick={() => setIsLogin(!isLogin)} fontWeight="bold">
                 {isLogin ? "Sign Up" : "Log In"}
               </Link>

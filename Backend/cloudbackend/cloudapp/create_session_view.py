@@ -24,7 +24,7 @@ def fetch_codeforces_problem(request):
             problem_index
         )
     except Exception as e:
-        print("Playwright error:", e)
+        print("CloudScrapper error:", e)
         return Response(
             {"error": "Failed to fetch problem"},
             status=502
