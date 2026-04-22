@@ -23,4 +23,6 @@ urlpatterns = [
 
     path('api/auth/request-reset-email/', views.RequestPasswordResetEmail.as_view(), name='request-reset-email'),
     path('api/auth/password-reset-complete/', views.SetNewPassword.as_view(), name='password-reset-complete'),
+
+    path('api/ai/generate/', views.generate_code_with_ai, name='generate_ai'),
 ]

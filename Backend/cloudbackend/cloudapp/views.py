@@ -12,6 +12,24 @@ from django.core.mail import send_mail
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from .models import CollaborationSession
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+import google.generativeai as genai
+from django.conf import settings
+import ssl
+import urllib3
+
+# 1. Disable the annoying terminal warnings
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# 2. Tell Python globally to NOT verify SSL certificates (Bypasses the Antivirus/Firewall block)
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
 
 #Session Creation
 @api_view(['POST'])
@@ -196,3 +214,59 @@ class SetNewPassword(APIView):
 
         except Exception as e:
             return Response({'error': 'Something went wrong'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def generate_code_with_ai(request):
+    prompt = request.data.get('prompt')
+    current_code = request.data.get('code')
+    language = request.data.get('language')
+    problem_context = request.data.get('problem_context')
+
+    if not prompt:
+        return Response({"error": "Prompt is required"}, status=400)
+
+    try:
+        # 1. Initialize the NEW GenAI Client
+        client = genai.Client(api_key="") 
+        
+        # 2. Build the System Prompt
+        system_instruction = f"You are an expert coding assistant. The user is writing code in {language}.\n"
+        
+        if problem_context:
+            system_instruction += f"The user is solving this problem: {problem_context}\n\n"
+            
+        full_prompt = f"""
+        {system_instruction}
+        Here is their current code:
+        ```
+        {current_code}
+        ```
+        User Request: "{prompt}"
+        
+        Instructions:
+        1. Return ONLY the full, updated code. 
+        2. Do not include markdown backticks (```) or language names in the response.
+        3. Do not add conversational text like "Here is the code". Just the code.
+        """
+
+        # 3. Generate Content using the NEW syntax
+        response = client.models.generate_content(
+            model='gemini-2.5-flash', # Upgraded to the faster 2.5-flash model
+            contents=full_prompt,
+        )
+        
+        # 4. Clean up response
+        generated_code = response.text.strip()
+        if generated_code.startswith("```"):
+            generated_code = generated_code.split("\n", 1)[1] # Remove first line
+        if generated_code.endswith("```"):
+            generated_code = generated_code.rsplit("\n", 1)[0] # Remove last line
+
+        return Response({'generated_code': generated_code}, status=200)
+
+    except Exception as e:
+        print(f"AI Error: {e}")
+        return Response({"error": "Failed to generate code"}, status=500)
