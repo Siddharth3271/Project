@@ -15,7 +15,7 @@ from .models import CollaborationSession
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-import google.generativeai as genai
+from google import genai
 from django.conf import settings
 import ssl
 import urllib3
@@ -230,7 +230,7 @@ def generate_code_with_ai(request):
 
     try:
         # 1. Initialize the NEW GenAI Client
-        client = genai.Client(api_key="") 
+        client = genai.Client(api_key="AIzaSyDdzp1m0wuctpJVe7eQu36QbYfGWmnZ7A4") 
         
         # 2. Build the System Prompt
         system_instruction = f"You are an expert coding assistant. The user is writing code in {language}.\n"

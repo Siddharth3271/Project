@@ -27,7 +27,7 @@ const LanguageSelector = ({ language, onSelect }) => {
           <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
             {language}
           </MenuButton>
-          <MenuList bg="#110c1b">
+          <MenuList bg="#110c1b" zIndex={10}>
             {languages.map(([lang, version]) => (
               <MenuItem
                 key={lang}
