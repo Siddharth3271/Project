@@ -3,7 +3,6 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from urllib.parse import parse_qs
 
-
 @database_sync_to_async
 def get_user_from_token(token_str):
     """
@@ -32,6 +31,30 @@ def get_user_from_token(token_str):
         print(f"Error getting user from token: {e}")
         return AnonymousUser()
 
+# --- NEW DB HELPERS FOR SESSION STATE ---
+@database_sync_to_async
+def get_session_db(token):
+    from .models import CollaborationSession
+    try:
+        return CollaborationSession.objects.get(token=token)
+    except CollaborationSession.DoesNotExist:
+        return None
+
+@database_sync_to_async
+def update_session_db(token, code=None, language=None, problem_data=None):
+    from .models import CollaborationSession
+    try:
+        session = CollaborationSession.objects.get(token=token)
+        if code is not None:
+            session.code = code
+        if language is not None:
+            session.language = language
+        if problem_data is not None:
+            session.problem_data = problem_data
+        session.save()
+    except CollaborationSession.DoesNotExist:
+        pass
+# ----------------------------------------
 
 class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
 
@@ -67,6 +90,18 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
         await self.accept()
         print(f"User {self.user.username} connected to room {self.room_group_name}")
 
+        # --- LATE JOINER FIX: SEND CURRENT STATE UPON CONNECTION ---
+        session = await get_session_db(self.room_name)
+        if session:
+            await self.send(text_data=json.dumps({
+                "data": {
+                    "type": "room_state",
+                    "code": session.code,
+                    "language": session.language,
+                    "problem": session.problem_data
+                }
+            }))
+
     async def disconnect(self, close_code):
         if hasattr(self, "room_group_name"):
             await self.channel_layer.group_discard(
@@ -79,7 +114,7 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         msg_type = data.get("type")
 
-        #Handle typing event separately
+        # Handle typing event separately
         if msg_type == "typing":
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -90,7 +125,15 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
             )
             return
 
-        # Otherwise, broadcast normal code/language updates
+        # --- LATE JOINER FIX: SAVE CHANGES TO DATABASE ---
+        if msg_type == "code_change":
+            await update_session_db(self.room_name, code=data.get("code"))
+        elif msg_type == "language_change":
+            await update_session_db(self.room_name, language=data.get("language"))
+        elif msg_type == "problem_loaded":
+            await update_session_db(self.room_name, problem_data=data.get("problem"))
+
+        # Broadcast normal updates to everyone else
         await self.channel_layer.group_send(
             self.room_group_name,
             {

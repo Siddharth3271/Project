@@ -8,6 +8,7 @@ import {
   MenuItem,
   MenuList,
   Text,
+  Portal
 } from "@chakra-ui/react";
 import { ChevronDownIcon } from '@chakra-ui/icons';
 import { LANGUAGE_VERSIONS } from "../constants";
@@ -18,7 +19,7 @@ const languages = Object.entries(LANGUAGE_VERSIONS);
 
 const LanguageSelector = ({ language, onSelect }) => {
   return (
-    <Box ml={2} mb={4}>
+    <Box ml={2} mb={4} position="relative" zIndex={100}>
       <Flex align="center">
         <Text mr={2} fontSize="lg">
           Language:
@@ -27,7 +28,8 @@ const LanguageSelector = ({ language, onSelect }) => {
           <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
             {language}
           </MenuButton>
-          <MenuList bg="#110c1b" zIndex={10}>
+          <Portal>
+            <MenuList bg="#110c1b" zIndex={10}>
             {languages.map(([lang, version]) => (
               <MenuItem
                 key={lang}
@@ -47,6 +49,7 @@ const LanguageSelector = ({ language, onSelect }) => {
               </MenuItem>
             ))}
           </MenuList>
+          </Portal>
         </Menu>
       </Flex>
     </Box>

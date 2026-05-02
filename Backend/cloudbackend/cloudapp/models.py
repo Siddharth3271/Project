@@ -10,6 +10,6 @@ class CollaborationSession(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-
+    problem_data = models.JSONField(null=True, blank=True)
     def __str__(self):
         return f"Session {self.id} ({self.language})"

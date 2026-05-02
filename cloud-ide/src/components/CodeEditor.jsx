@@ -6,7 +6,6 @@ import {
   Text,
   VStack,
   HStack,
-  Select,
   useToast,
   IconButton,
   Tooltip,
@@ -32,9 +31,23 @@ import CodeforcesLoader from "./CodeforcesLoader";
 
 // --- Remote Cursor CSS & Classes (Kept exactly as you had them) ---
 const cursorStyles = `
-  .remote-cursor { position: absolute; border-left: 2px solid; height: 1.2em; pointer-events: none; z-index: 10; }
-  .remote-cursor-label { position: absolute; color: white; font-size: 10px; padding: 2px 4px; border-radius: 3px; white-space: nowrap; transform: translateY(-100%); pointer-events: none; z-index: 10; }
-  .remote-selection { position: absolute; opacity: 0.3; pointer-events: none; z-index: 5; }
+  .remote-cursor { 
+    border-left: 2px solid; 
+    pointer-events: none; 
+  }
+  .remote-cursor-label { 
+    color: white; 
+    font-size: 10px; 
+    padding: 1px 4px; 
+    border-radius: 3px; 
+    white-space: nowrap; 
+    pointer-events: none;
+    margin-left: 2px;
+  }
+  .remote-selection { 
+    opacity: 0.3; 
+    pointer-events: none; 
+  }
 `;
 
 const getUserColor = (username) => {
@@ -46,20 +59,63 @@ const getUserColor = (username) => {
 
 class RemoteCursorManager {
   constructor(editor, monacoInstance, username, color) {
-    this.editor = editor; this.monaco = monacoInstance; this.username = username; this.color = color;
-    this.cursorDecoration = []; this.selectionDecoration = [];
+    this.editor = editor; 
+    this.monaco = monacoInstance; 
+    this.username = username; 
+    
+    // Remove spaces/special characters so we can use it as a safe CSS class
+    this.safeName = username.replace(/[^a-zA-Z0-9]/g, ''); 
+    this.color = color;
+    
+    this.cursorDecoration = []; 
+    this.selectionDecoration = [];
+
+    // Inject dynamic CSS to apply this specific user's color!
+    if (!document.getElementById(`cursor-style-${this.safeName}`)) {
+      const style = document.createElement("style");
+      style.id = `cursor-style-${this.safeName}`;
+      style.innerHTML = `
+        .cursor-${this.safeName} { border-left-color: ${color} !important; }
+        .label-${this.safeName} { background-color: ${color} !important; }
+        .selection-${this.safeName} { background-color: ${color} !important; }
+      `;
+      document.head.appendChild(style);
+    }
   }
   updateCursor(position) {
     if (!this.monaco) return;
-    const newCursorDecoration = { range: new this.monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column), options: { className: "remote-cursor", stickiness: this.monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges, after: { content: ` ${this.username} `, className: "remote-cursor-label", backgroundColor: this.color, borderColor: this.color }, borderColor: this.color } };
+    
+    const newCursorDecoration = { 
+      range: new this.monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column), 
+      options: { 
+        className: `remote-cursor cursor-${this.safeName}`, 
+        stickiness: this.monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges, 
+        after: { 
+          content: ` ${this.username} `, 
+          inlineClassName: `remote-cursor-label label-${this.safeName}` // FIX: Uses inlineClassName
+        } 
+      } 
+    };
     this.cursorDecoration = this.editor.deltaDecorations(this.cursorDecoration, [newCursorDecoration]);
   }
+
   updateSelection(selection) {
     if (!this.monaco) return;
-    const newSelectionDecoration = { range: new this.monaco.Range(selection.startLineNumber, selection.startColumn, selection.endLineNumber, selection.endColumn), options: { className: "remote-selection", stickiness: this.monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges, css: { backgroundColor: this.color } } };
+    
+    const newSelectionDecoration = { 
+      range: new this.monaco.Range(selection.startLineNumber, selection.startColumn, selection.endLineNumber, selection.endColumn), 
+      options: { 
+        className: `remote-selection selection-${this.safeName}`, 
+        stickiness: this.monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges 
+      } 
+    };
     this.selectionDecoration = this.editor.deltaDecorations(this.selectionDecoration, [newSelectionDecoration]);
   }
-  remove() { this.editor.deltaDecorations(this.cursorDecoration, []); this.editor.deltaDecorations(this.selectionDecoration, []); }
+
+  remove() { 
+    this.editor.deltaDecorations(this.cursorDecoration, []); 
+    this.editor.deltaDecorations(this.selectionDecoration, []); 
+  }
 }
 
 const BASE_WS_URL = "ws://127.0.0.1:8000/ws/editor/";
@@ -101,53 +157,73 @@ const CodeEditor = () => {
 
     ws.onmessage = (event) => {
       if (typeof event.data !== "string") return;
+      
       try {
         const message = JSON.parse(event.data);
-        const { data, user: username } = message;
+        const payload = message.data; // The actual event data
+        const username = message.user?.username; // FIX: Extract the string, not the object!
+
         const editor = editorRef.current;
         if (!editor || !username || !monaco) return;
 
-        if (!remoteCursorsRef.current.has(username) && data.type !== "user_left") {
-          remoteCursorsRef.current.set(username, new RemoteCursorManager(editor, monaco, username, getUserColor(username)));
+        // Create a cursor for the user if they don't have one yet
+        if (!remoteCursorsRef.current.has(username) && payload.type !== "user_left") {
+          remoteCursorsRef.current.set(
+            username, 
+            new RemoteCursorManager(editor, monaco, username, getUserColor(username))
+          );
         }
+        
         const cursorManager = remoteCursorsRef.current.get(username);
 
-        switch (data.type) {
-          case "code_update": setValue(data.code); break;
-          case "language_update": setLanguage(data.language); break;
-          case "problem_update": setProblem(data.problem); break;
+        switch (payload.type) {
+          case "code_change": // MATCHES BACKEND
+            setValue(payload.code); 
+            break;
+            
+          case "language_change": // MATCHES BACKEND
+            setLanguage(payload.language); 
+            break;
+            
+          case "problem_loaded": // MATCHES BACKEND
+            setProblem(payload.problem); 
+            break;
+            
           case "selection_update":
             if (cursorManager) {
-              if (data.selection) cursorManager.updateSelection(data.selection);
-              if (data.position) cursorManager.updateCursor(data.position);
+              if (payload.selection) cursorManager.updateSelection(payload.selection);
+              if (payload.position) cursorManager.updateCursor(payload.position);
             }
             break;
-          case "user_joined":
-             if (!remoteCursorsRef.current.has(username)) remoteCursorsRef.current.set(username, new RemoteCursorManager(editor, monaco, username, getUserColor(username)));
-            break;
+            
           case "user_left":
-            if (cursorManager) { cursorManager.remove(); remoteCursorsRef.current.delete(username); }
+            if (cursorManager) { 
+              cursorManager.remove(); 
+              remoteCursorsRef.current.delete(username); 
+            }
             break;
+            
           case "room_state":
-            setValue(data.code); setLanguage(data.language); if (data.problem) setProblem(data.problem);
-            data.users.forEach((user) => {
-              if (!remoteCursorsRef.current.has(user) && user !== localStorage.getItem("username")) {
-                remoteCursorsRef.current.set(user, new RemoteCursorManager(editor, monaco, user, getUserColor(user)));
-              }
-            });
+            // Late joiner magic
+            setValue(payload.code || ""); 
+            setLanguage(payload.language || "cpp"); 
+            if (payload.problem) setProblem(payload.problem);
             break;
-          default: break;
+            
+          default: 
+            break;
         }
-      } catch (e) { console.error("WS Parse Error:", e); }
+      } catch (e) { 
+        console.error("WS Parse Error:", e); 
+      }
     };
-
     return () => {
       ws.close();
       remoteCursorsRef.current.forEach((manager) => manager.remove());
       remoteCursorsRef.current.clear();
     };
   }, [roomToken, navigate, monaco, isCollaborating]);
-
+  
   // --- AI Code Generation with Typing Effect ---
   const handleAiGenerate = async () => {
     if (!aiPrompt.trim()) return;
@@ -230,7 +306,7 @@ const CodeEditor = () => {
   const handleProblemChange = (newProblem) => {
     setProblem(newProblem);
     if (isCollaborating && wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: "problem_update", problem: newProblem }));
+        wsRef.current.send(JSON.stringify({ type: "problem_loaded", problem: newProblem }));
     }
   };
 
@@ -248,13 +324,13 @@ const CodeEditor = () => {
   const handleEditorChange = (newValue) => {
     setValue(newValue);
     if (isCollaborating && wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: "code_update", code: newValue }));
+      wsRef.current.send(JSON.stringify({ type: "code_change", code: newValue }));
     }
   };
 
   const onSelect = (newLang) => {
     setLanguage(newLang); setValue(CODE_SNIPPETS[newLang] || "");
-    if (isCollaborating && wsRef.current?.readyState === WebSocket.OPEN) wsRef.current.send(JSON.stringify({ type: "language_update", language: newLang }));
+    if (isCollaborating && wsRef.current?.readyState === WebSocket.OPEN) wsRef.current.send(JSON.stringify({ type: "language_change", language: newLang }));
   };
 
   return (
@@ -355,5 +431,6 @@ const CodeEditor = () => {
     </Box>
   );
 };
+
 
 export default CodeEditor;

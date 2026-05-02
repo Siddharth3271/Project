@@ -230,7 +230,7 @@ def generate_code_with_ai(request):
 
     try:
         # 1. Initialize the NEW GenAI Client
-        client = genai.Client(api_key="AIzaSyDdzp1m0wuctpJVe7eQu36QbYfGWmnZ7A4") 
+        client = genai.Client(api_key="") 
         
         # 2. Build the System Prompt
         system_instruction = f"You are an expert coding assistant. The user is writing code in {language}.\n"
