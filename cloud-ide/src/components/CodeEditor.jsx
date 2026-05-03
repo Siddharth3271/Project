@@ -287,7 +287,10 @@ const CodeEditor = () => {
     try {
       setIsLoading(true);
       const { run: result } = await executeCode(language, sourceCode, stdin);
-      setOutput(result.output.split("\n"));
+      
+      // Split the string into an array by newlines so Output.jsx can map it!
+      setOutput(result.output.split("\n")); 
+      
       result.stderr ? setIsError(true) : setIsError(false);
     } catch (error) {
       toast({ title: "Error", description: "Execution failed", status: "error" });

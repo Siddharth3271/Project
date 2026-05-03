@@ -1,29 +1,46 @@
 import axios from "axios";
 import { LANGUAGE_VERSIONS } from "../constants";
 
-// Piston API (for code execution)
-const API = axios.create({
-  baseURL: "https://emkc.org/api/v2/piston",
-});
 
+// === CODE EXECUTION API (Local Docker Piston) ===
 export const executeCode = async (language, sourceCode, stdin) => {
-  const response = await API.post("/execute", {
-    language: language,
-    version: LANGUAGE_VERSIONS[language],
-    files: [
-      {
-        content: sourceCode,
+  try {
+    // We removed the http://127.0.0.1:2000 part!
+    const response = await fetch("/api/v2/execute", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    ],
-    stdin: stdin,
-  });
-  return response.data;
+      body: JSON.stringify({
+        language: language,
+        version: "*", 
+        files: [{ content: sourceCode }],
+        stdin: stdin || "",
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Local server responded with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      run: {
+        output: data.run.output || "",
+        stderr: data.run.stderr ? data.run.stderr : null
+      }
+    };
+  } catch (error) {
+    console.error("Local Docker API Error:", error);
+    throw new Error("Local execution server failed.");
+  }
 };
+
 
 // === DJANGO BACKEND API ===
 
 // --- 1. Public API Instance (for login, signup, password reset) ---
-// --- FIX: Added 'export' here ---
 export const publicApi = axios.create({
   baseURL: "http://127.0.0.1:8000",
   headers: {

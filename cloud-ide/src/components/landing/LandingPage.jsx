@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { FiCode, FiCloud, FiUsers, FiZap, FiShare2, FiDatabase } from "react-icons/fi";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 export default function LandingPage() {
   const navigate = useNavigate();

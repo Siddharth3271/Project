@@ -1,7 +1,7 @@
 export const LANGUAGE_VERSIONS = {
-    cpp: "10.2.0",
-    python: "3.10.0",
-    java: "15.0.2",
+  cpp: "10.2.0",
+  java: "15.0.2",
+  python: "3.10.0",
 };
 
 export const CODE_SNIPPETS = {

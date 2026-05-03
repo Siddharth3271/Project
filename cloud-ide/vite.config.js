@@ -20,5 +20,15 @@ export default defineConfig({
   },
   preview: {
     open: true
+  },
+  server: {
+    proxy: {
+      // Whenever React asks for /api, Vite secretly routes it to your Docker server
+      '/api': {
+        target: 'http://127.0.0.1:2000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
   }
 })
