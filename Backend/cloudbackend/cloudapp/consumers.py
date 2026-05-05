@@ -94,6 +94,7 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
         session = await get_session_db(self.room_name)
         if session:
             await self.send(text_data=json.dumps({
+                "user": {"username": "System"},
                 "data": {
                     "type": "room_state",
                     "code": session.code,
@@ -117,6 +118,7 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
         # Handle typing event separately
         if msg_type == "typing":
             await self.channel_layer.group_send(
+                
                 self.room_group_name,
                 {
                     "type": "typing_event",
@@ -132,6 +134,8 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
             await update_session_db(self.room_name, language=data.get("language"))
         elif msg_type == "problem_loaded":
             await update_session_db(self.room_name, problem_data=data.get("problem"))
+        elif msg_type == "input_change":
+            pass
 
         # Broadcast normal updates to everyone else
         await self.channel_layer.group_send(

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState , useEffect} from "react";
 import {
   Box,
   Button,
@@ -20,14 +20,20 @@ import {
 } from "@chakra-ui/react";
 import { privateApi } from "./api";
 
-const CodeforcesLoader = ({ onLoadSample }) => {
+const CodeforcesLoader = ({ onLoadSample, problem, onProblemChange }) => {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [problem, setProblem] = useState(null);
+  // const [problem, setProblem] = useState(null);
   const [selectedSample, setSelectedSample] = useState(0);
   
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
+
+  useEffect(() => {
+    if (problem && problem.url) {
+      setUrl(problem.url);
+    }
+  }, [problem]);
 
   const fetchProblem = async () => {
     const parsed = parseCodeforcesUrl(url);
@@ -48,7 +54,8 @@ const CodeforcesLoader = ({ onLoadSample }) => {
       });
 
       const problemData = res.data;
-      setProblem(problemData);
+      // setProblem(problemData);
+      onProblemChange(problemData);
       
       // --- FIX 1: Auto-load the first sample immediately ---
       setSelectedSample(0);

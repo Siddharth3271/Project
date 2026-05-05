@@ -24,7 +24,7 @@ import {
 import { Editor, useMonaco } from "@monaco-editor/react";
 import { CODE_SNIPPETS } from "../constants";
 import { privateApi, executeCode } from "./api";
-import { FiPlay, FiUsers, FiLink2, FiCpu } from "react-icons/fi"; // FiCpu is the AI icon
+import { FiPlay, FiUsers, FiLink2, FiCpu, FiLogOut } from "react-icons/fi"; // FiCpu is the AI icon
 import Output from "./Output";
 import LanguageSelector from "./LanguageSelector";
 import CodeforcesLoader from "./CodeforcesLoader";
@@ -188,6 +188,10 @@ const CodeEditor = () => {
           case "problem_loaded": // MATCHES BACKEND
             setProblem(payload.problem); 
             break;
+          
+          case "input_change": 
+            setStdin(payload.stdin || "");
+            break;
             
           case "selection_update":
             if (cursorManager) {
@@ -301,9 +305,21 @@ const CodeEditor = () => {
 
   const handleStartCollaboration = async () => {
     try {
-      const res = await privateApi.post("/api/sessions/create/", { initial_code: value, language });
+      const res = await privateApi.post("/api/sessions/create/", { initial_code: value, language, problem_data: problem });
       if (res.data.token) navigate(`/editor/${res.data.token}`);
     } catch (error) { toast({ title: "Failed", status: "error" }); }
+  };
+
+  const handleDisconnect = () => {
+    // Navigating back to "new" automatically closes the WebSocket 
+    // and clears the room state!
+    navigate("/editor/new",{ replace: true });
+    toast({
+      title: "Disconnected",
+      description: "You have left the live collaboration session.",
+      status: "info",
+      duration: 3000,
+    });
   };
 
   const handleProblemChange = (newProblem) => {
@@ -331,6 +347,13 @@ const CodeEditor = () => {
     }
   };
 
+  const handleStdinChange = (newValue) => {
+    setStdin(newValue);
+    if (isCollaborating && wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "input_change", stdin: newValue }));
+    }
+  };
+
   const onSelect = (newLang) => {
     setLanguage(newLang); setValue(CODE_SNIPPETS[newLang] || "");
     if (isCollaborating && wsRef.current?.readyState === WebSocket.OPEN) wsRef.current.send(JSON.stringify({ type: "language_change", language: newLang }));
@@ -354,6 +377,11 @@ const CodeEditor = () => {
               <Button colorScheme="green" leftIcon={<FiUsers />} size={{ base: "sm", md: "md" }} isDisabled>Live Session</Button>
               <Tooltip label="Copy session link">
                 <Button leftIcon={<FiLink2 />} colorScheme="blue" size={{ base: "sm", md: "md" }} variant="outline" onClick={() => navigator.clipboard.writeText(window.location.href)}>Copy Link</Button>
+              </Tooltip>
+              <Tooltip label="Leave the session">
+                <Button leftIcon={<FiLogOut />} colorScheme="red" size={{ base: "sm", md: "md" }} onClick={handleDisconnect}>
+                  Disconnect
+                </Button>
               </Tooltip>
             </>
           ) : (
@@ -393,10 +421,19 @@ const CodeEditor = () => {
 
         {/* Right: Input & Output */}
         <VStack w={{ base: "100%", md: "30%" }} spacing={4} align="stretch" overflowY="auto">
-          <CodeforcesLoader onLoadSample={(input) => setStdin(input)} problem={problem} onProblemChange={handleProblemChange} />
+          <CodeforcesLoader 
+            onLoadSample={(input) => handleStdinChange(input)} 
+            problem={problem} 
+            onProblemChange={handleProblemChange} 
+          />
           <Box bg="gray.900" p={4} borderRadius="md" border="1px solid" borderColor="gray.700">
             <Text fontWeight="bold" mb={2} color="gray.400">Input</Text>
-            <Textarea value={stdin} onChange={(e) => setStdin(e.target.value)} placeholder="Enter custom input here..." minH="100px" bg="gray.800" border="none" color="white" resize="vertical" _focus={{ border: "1px solid", borderColor: "blue.500" }} />
+            <Textarea 
+              value={stdin} 
+              onChange={(e) => handleStdinChange(e.target.value)} 
+              placeholder="Enter custom input here..." 
+              minH="100px" bg="gray.800" border="none" color="white" resize="vertical" _focus={{ border: "1px solid", borderColor: "blue.500" }} 
+            />
           </Box>
           <Box flex="1" bg="gray.900" p={4} borderRadius="md" border="1px solid" borderColor="gray.700" minH="200px">
             <Text fontWeight="bold" mb={2} color="gray.400">Output</Text>
