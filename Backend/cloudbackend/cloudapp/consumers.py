@@ -136,7 +136,14 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
             await update_session_db(self.room_name, problem_data=data.get("problem"))
         elif msg_type == "input_change":
             pass
-
+        elif msg_type=="terminate_session":
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                {
+                    "type": "force_evict_all",
+                }
+            )
+            return
         # Broadcast normal updates to everyone else
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -156,6 +163,16 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
             "data": event["data"],
             "user": {"username": event["sender_username"]},
         }))
+    
+    async def force_evict_all(self, event):
+        await self.send(text_data=json.dumps({
+            "user": {"username": "System"},
+            "data": {
+                "type": "session_terminated"
+            }
+        }))
+        # Disconnect the socket on the backend
+        await self.close()
 
     # Handle typing event
     async def typing_event(self, event):
