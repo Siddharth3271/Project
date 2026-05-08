@@ -19,6 +19,7 @@ from google import genai
 from django.conf import settings
 import ssl
 import urllib3
+import os
 
 # 1. Disable the annoying terminal warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -230,7 +231,8 @@ def generate_code_with_ai(request):
 
     try:
         # 1. Initialize the NEW GenAI Client
-        client = genai.Client(api_key="") 
+
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY")) 
         
         # 2. Build the System Prompt
         system_instruction = f"You are an expert coding assistant. The user is writing code in {language}.\n"

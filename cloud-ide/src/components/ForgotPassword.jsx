@@ -59,9 +59,6 @@ const ForgotPassword = () => {
               <Text textAlign="center" color="green.600" fontWeight="medium">
                 Check your email for the reset link!
               </Text>
-              <Text fontSize="sm" color="gray.600" textAlign="center">
-                (For development, check your Django console terminal to see the printed email containing the link).
-              </Text>
               <Button as={Link} to="/auth" colorScheme="blue" variant="outline" w="full">
                 Back to Login
               </Button>

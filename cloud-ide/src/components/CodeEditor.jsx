@@ -84,17 +84,21 @@ class RemoteCursorManager {
   }
   updateCursor(position) {
     if (!this.monaco) return;
-
-    const newCursorDecoration = {
-      range: new this.monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column),
-      options: {
-        className: `remote-cursor cursor-${this.safeName}`,
-        stickiness: this.monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
-        after: {
-          content: ` ${this.username} `,
-          inlineClassName: `remote-cursor-label label-${this.safeName}` // FIX: Uses inlineClassName
-        }
-      }
+    
+    const newCursorDecoration = { 
+      range: new this.monaco.Range(position.lineNumber, position.column, position.lineNumber, position.column), 
+      options: { 
+        className: `remote-cursor cursor-${this.safeName}`, 
+        stickiness: this.monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges, 
+        
+        // --- ADD THIS LINE: This creates the hover tooltip! ---
+        hoverMessage: { value: `**${this.username}** is typing...` }, 
+        
+        after: { 
+          content: ` ${this.username} `, 
+          inlineClassName: `remote-cursor-label label-${this.safeName}` 
+        } 
+      } 
     };
     this.cursorDecoration = this.editor.deltaDecorations(this.cursorDecoration, [newCursorDecoration]);
   }
@@ -141,6 +145,7 @@ const CodeEditor = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
 
   const isCollaborating = !!roomToken && roomToken !== "new";
+  const isHost = localStorage.getItem(`isHost_${roomToken}`) === "true";
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -318,7 +323,10 @@ const CodeEditor = () => {
   const handleStartCollaboration = async () => {
     try {
       const res = await privateApi.post("/api/sessions/create/", { initial_code: value, language, problem_data: problem });
-      if (res.data.token) navigate(`/editor/${res.data.token}`);
+      if (res.data.token) {
+        localStorage.setItem(`isHost_${res.data.token}`, "true");
+        navigate(`/editor/${res.data.token}`);
+      }
     } catch (error) { toast({ title: "Failed", status: "error" }); }
   };
 
@@ -390,47 +398,50 @@ const CodeEditor = () => {
         </HStack>
 
         <HStack spacing={3} flexWrap="wrap" mt={{ base: 2, md: 0 }}>
-          {isCollaborating ? (
-            <>
-              <Button colorScheme="green" leftIcon={<FiUsers />} size={{ base: "sm", md: "md" }} isDisabled>Live Session</Button>
-              <Tooltip label="Copy session link">
-                <Button leftIcon={<FiLink2 />} colorScheme="blue" size={{ base: "sm", md: "md" }} variant="outline" onClick={() => navigator.clipboard.writeText(window.location.href)}>Copy Link</Button>
-              </Tooltip>
-              <Tooltip label="Leave the session">
-                <Button leftIcon={<FiLogOut />} colorScheme="red" size={{ base: "sm", md: "md" }} onClick={handleDisconnect}>
-                  Disconnect
-                </Button>
-              </Tooltip>
-            </>
-          ) : (
+
+          {/* --- STATE 1: SOLO MODE (Session not created yet) --- */}
+          {!isCollaborating && (
             <Tooltip label="Start new collaboration session">
-              <Button colorScheme="green" leftIcon={<FiUsers />} onClick={handleStartCollaboration} size={{ base: "sm", md: "md" }}>Start Collaboration</Button>
+              <Button colorScheme="green" leftIcon={<FiUsers />} onClick={handleStartCollaboration} size={{ base: "sm", md: "md" }}>
+                Start Collaboration
+              </Button>
             </Tooltip>
           )}
 
-          <Tooltip label="Leave the session (Others can stay)">
-            <Button leftIcon={<FiLogOut />} colorScheme="orange" size={{ base: "sm", md: "md" }} onClick={handleDisconnect}>
-              Leave
-            </Button>
-          </Tooltip>
+          {/* --- STATE 2: LIVE SESSION MODE --- */}
+          {isCollaborating && (
+            <>
+              <Button colorScheme="green" leftIcon={<FiUsers />} size={{ base: "sm", md: "md" }} isDisabled>
+                Live Session
+              </Button>
 
-          <Tooltip label="End this session for everyone">
-            <Button leftIcon={<FiLogOut />} bg="red.600" color="white" _hover={{ bg: "red.700" }} size={{ base: "sm", md: "md" }} onClick={handleEndSessionForAll}>
-              End for All
-            </Button>
-          </Tooltip>
+              <Tooltip label="Copy session link">
+                <Button leftIcon={<FiLink2 />} colorScheme="blue" size={{ base: "sm", md: "md" }} variant="outline" onClick={() => navigator.clipboard.writeText(window.location.href)}>
+                  Copy Link
+                </Button>
+              </Tooltip>
 
-          {/* --- AI BUTTON --- */}
+              {/* EVERYONE gets the Leave button */}
+              <Tooltip label="Leave the session (Others can stay)">
+                <Button leftIcon={<FiLogOut />} colorScheme="orange" size={{ base: "sm", md: "md" }} onClick={handleDisconnect}>
+                  Leave
+                </Button>
+              </Tooltip>
+
+              {/* ONLY THE HOST gets the End for All button */}
+              {isHost && (
+                <Tooltip label="End this session for everyone">
+                  <Button leftIcon={<FiLogOut />} bg="red.600" color="white" _hover={{ bg: "red.700" }} size={{ base: "sm", md: "md" }} onClick={handleEndSessionForAll}>
+                    End for All
+                  </Button>
+                </Tooltip>
+              )}
+            </>
+          )}
+
+          {/* --- ALWAYS VISIBLE BUTTONS --- */}
           <Tooltip label="Ask AI to write code">
-            <Button
-              leftIcon={<FiCpu />}
-              colorScheme="purple"
-              variant="solid"
-              size={{ base: "sm", md: "md" }}
-              onClick={onAiOpen}
-              isLoading={isAiLoading}
-              loadingText="AI Thinking..."
-            >
+            <Button leftIcon={<FiCpu />} colorScheme="purple" variant="solid" size={{ base: "sm", md: "md" }} onClick={onAiOpen} isLoading={isAiLoading} loadingText="AI Thinking...">
               Ask AI
             </Button>
           </Tooltip>
@@ -438,6 +449,7 @@ const CodeEditor = () => {
           <Tooltip label="Run code">
             <IconButton icon={<FiPlay />} colorScheme="blue" variant="solid" size="sm" isLoading={isLoading} onClick={runCode} />
           </Tooltip>
+
         </HStack>
       </Flex>
 

@@ -137,7 +137,7 @@ class CollaborativeEditorConsumer(AsyncWebsocketConsumer):
         elif msg_type == "input_change":
             pass
         elif msg_type=="terminate_session":
-            await self.channel_layer.group_discard(
+            await self.channel_layer.group_send(
                 self.room_group_name,
                 {
                     "type": "force_evict_all",
