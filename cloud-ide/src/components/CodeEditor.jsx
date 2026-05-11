@@ -122,7 +122,7 @@ class RemoteCursorManager {
   }
 }
 
-const BASE_WS_URL = "ws://127.0.0.1:8000/ws/editor/";
+const BASE_WS_URL = "wss://cloud-ide-backend-o772.onrender.com/ws/editor/${sessionId}/";
 
 const CodeEditor = () => {
   const { token: roomToken } = useParams();

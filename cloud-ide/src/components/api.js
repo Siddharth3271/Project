@@ -6,7 +6,7 @@ import { LANGUAGE_VERSIONS } from "../constants";
 export const executeCode = async (language, sourceCode, stdin) => {
   try {
     // We removed the http://127.0.0.1:2000 part!
-    const response = await fetch("/api/v2/execute", {
+    const response = await fetch("https://emkc.org/api/v2/piston/execute", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -36,13 +36,13 @@ export const executeCode = async (language, sourceCode, stdin) => {
     throw new Error("Local execution server failed.");
   }
 };
-
+const backendURL="https://cloud-ide-backend-o772.onrender.com"
 
 // === DJANGO BACKEND API ===
 
 // --- 1. Public API Instance (for login, signup, password reset) ---
 export const publicApi = axios.create({
-  baseURL: "http://127.0.0.1:8000",
+  baseURL: backendURL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -51,7 +51,7 @@ export const publicApi = axios.create({
 // --- 2. Private API Instance (for authenticated requests) ---
 // This is for all requests that need a token
 export const privateApi = axios.create({
-  baseURL: "http://127.0.0.1:8000",
+  baseURL: backendURL,
   headers: {
     "Content-Type": "application/json",
   },
